@@ -72,6 +72,13 @@ enum custom_keycodes {
 // F20 mutes the mic on my system.
 #define MUTEMIC KC_F20
 
+// =============================================
+
+// =============
+// Home Row Mods
+// =============
+
+
 // Short aliases for home row mods and other tap-hold keys.
 #define HRM_S LALT_T(KC_S)
 #define HRM_T LT(SYM, KC_T)
@@ -91,6 +98,12 @@ enum custom_keycodes {
 #define EXT_COL LT(EXT, KC_SCLN)
 #define NAV_SLS LSFT_T(KC_SLSH)
 #define NAV_EQL LT(0, KC_EQL)
+
+// =============================================
+
+// =============
+// Keymap Layers
+// =============
 
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -198,6 +211,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   ),
 };
 
+
+// =============================================
+
+// ==============
+// Util Functions
+// ==============
+
+
 // A cheap pseudorandom generator.
 static uint8_t myrand(void) {
   static uint16_t state = 1;
@@ -221,6 +242,12 @@ static uint16_t get_tap_keycode(uint16_t keycode) {
   }
   return keycode;
 }
+
+// =============================================
+
+// ==============
+// Features
+// ==============
 
 ///////////////////////////////////////////////////////////////////////////////
 // Combos (https://docs.qmk.fm/features/combo)
@@ -308,8 +335,8 @@ bool get_chordal_hold(
 #endif  // CHORDAL_HOLD
 
 #ifdef COMMUNITY_MODULE_TAP_FLOW_ENABLE
-uint16_t get_tap_flow_term(uint16_t keycode, keyrecord_t* record,
-                           uint16_t prev_keycode) {
+uint16_t get_tap_flow(uint16_t keycode, keyrecord_t* record,
+                      uint16_t prev_keycode) {
   // Only apply Tap Flow when following a letter key.
   if (get_tap_keycode(prev_keycode) <= KC_Z) {
     switch (keycode) {
@@ -876,6 +903,12 @@ void caps_word_set_user(bool active) {
 // User macro callbacks (https://docs.qmk.fm/feature_macros)
 ///////////////////////////////////////////////////////////////////////////////
 
+// =============================================
+
+// =================
+// KB Start-up Audio
+// =================
+
 void keyboard_post_init_user(void) {
 #if RGB_MATRIX_ENABLE
   lighting_init();
@@ -892,11 +925,21 @@ void keyboard_post_init_user(void) {
 #endif // defined(AUDIO_ENABLE) && defined(MUSHROOM_SOUND)
 }
 
+// =============================================
+
+// =================
+// Process Reocrd
+// =================
+
 bool process_record_user(uint16_t keycode, keyrecord_t* record) {
 #ifdef RGB_MATRIX_ENABLE
   lighting_activity_trigger();
 #endif  // RGB_MATRIX_ENABLE
   dlog_record(keycode, record);
+
+  // =============
+  // Home Ring
+  // =============
 
   // Track whether the left home ring and index keys are held, ignoring layer.
   static bool left_home_ring_held = false;
@@ -918,6 +961,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
     }
   }
 
+
+
+  // =============
+  // 
+  // =============
+
   // Logic for Alt mod when using alt-tabbing keys.
   if (keycode == HRM_DOT && record->tap.count == 0 && !record->event.pressed) {
     unregister_mods(MOD_BIT_LALT);
@@ -925,6 +974,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       (keycode == S(A(KC_TAB)) || keycode == A(KC_TAB))) {
     register_mods(MOD_BIT_LALT);
   }
+
+  // =============
+  // Mod Status
+  // =============
 
   const uint8_t mods = get_mods();
   const uint8_t all_mods = (mods | get_weak_mods()
@@ -936,10 +989,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
   const bool alt = all_mods & MOD_BIT_LALT;
   const uint8_t layer = read_source_layers_cache(record->event.key);
 
+  // =============
+  // Symbol layer disable `weak_mods`
+  // =============
+
   if (layer == SYM && record->event.pressed) {
     clear_weak_mods();
     send_keyboard_report();
   }
+
+
+  // =============
+  // Repeating key
+  // =============
 
   // If alt repeating key A, E, I, O, U, Y with no mods other than Shift, set
   // the last key to KC_N. Above, alternate repeat of KC_N is defined to be
@@ -957,6 +1019,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
   }
 
   switch (keycode) {
+
+
+    // =============
+    // Underscore
+    // =============
+
     // Behavior:
     //  * Unmodified:       _ (KC_UNDS)
     //  * With Shift:       - (KC_MINS)
@@ -989,6 +1057,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
     } return false;
 
+    // =============
+    // Tap-hold Key - Extra Layer, Colun
+    // =============
+
     // Hold behavior: switches to EXT layer.
     // Tap behavior:
     //  * Unmodified:       :
@@ -1009,10 +1081,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
       return true;
 
+
+    // =============
+    // Symbol, KC_T
+    // =============
+
     case HRM_T:
-      if (!record->tap.count) {
+      if (!record->tap.count) {   //* is holding
         if (record->event.pressed) {
-          if ((mods & MOD_BIT_LSHIFT) != 0) {
+          if ((mods & MOD_BIT_LSHIFT) != 0) {  //* is pressing with LSHIFT
             register_mods(MOD_BIT_LCTRL);
             layer_on(NAV);
           } else {
@@ -1026,17 +1103,27 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
       return true;
 
+    // =============
+    // Nav, KC_SLASH (in Symbol Layer)
+    // =============
+
     case NAV_SLS:
       if (!record->tap.count) {
         if (!record->event.pressed) {
+          // unpress `LSHIFT` when release
           unregister_mods(MOD_BIT_LSHIFT);
-        } else if (left_home_ring_held) {
+        } else if (left_home_ring_held) {  
+          //* Hold HRM ring together to enter NAV with LCTRL and SHFT
           register_mods(MOD_BIT_LCTRL | MOD_BIT_LSHIFT);
           layer_on(NAV);
         }
         return false;
       }
       return true;  // Default handling taps /.
+
+    // =============
+    // Nav, KC_EQL
+    // =============
 
     case NAV_EQL:
       if (!record->tap.count) {
@@ -1057,6 +1144,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       }
       return true;
   }
+
+
+  // =============
+  // Macros
+  // =============
 
   if (record->event.pressed) {
     switch (keycode) {
@@ -1140,6 +1232,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t* record) {
       case M_MKGRVS:
         SEND_STRING_DELAY(/*`*/"``\n\n```" SS_TAP(X_UP), TAP_CODE_DELAY);
         break;
+
+// =============================================
+
+// =============
+// RGB
+// =============
 
 #if RGB_MATRIX_ENABLE
       case RGBBRI:
